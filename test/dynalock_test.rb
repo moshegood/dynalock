@@ -89,6 +89,17 @@ class DynalockTest < Minitest::Test
     delete(ctx)
   end
 
+  def test_release_lock
+    ctx = "test_release_lock"
+    assert_equal true, acquire_lock(table: TABLE, owner: @owner, context: ctx, expire_time: 1)
+    assert_equal false, release_lock(table: TABLE, owner: "superman", context: ctx), "superman should not be able to release #{@owner}'s lock"
+    assert_equal false, acquire_lock(table: TABLE, owner: "superman", context: ctx, expire_time: 1), "superman should not be able to aquire an existing lock"
+    assert_equal true, release_lock(table: TABLE, owner: @owner, context: ctx), "#{@owner} should be able to release its own lock"
+    assert_equal true, acquire_lock(table: TABLE, owner: "superman", context: ctx, expire_time: 1), "superman should be able to pick the lock as soon as #{@owner} releases it"
+  ensure
+    delete(ctx)
+  end
+
   def test_with_lock
     ctx = "test_4"
 
@@ -100,6 +111,10 @@ class DynalockTest < Minitest::Test
     end
 
     assert_equal "it run", result
+
+    assert_equal true, acquire_lock(table: TABLE, owner: @owner, context: ctx)
+  ensure
+    delete(ctx)
   end
 
 

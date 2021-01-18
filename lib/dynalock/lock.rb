@@ -38,6 +38,20 @@ module Dynalock
       return false
     end
 
+    def release_lock(context:, owner: lock_default_owner, table: "locks")
+      dynamodb_client.delete_item({
+  table_name: table,
+  key: {id: context},
+  condition_expression: "lock_owner = :owner",
+	expression_attribute_values: {
+	  ":owner": owner,
+	},
+      })
+      true
+    rescue Aws::DynamoDB::Errors::ConditionalCheckFailedException
+      return false
+    end
+
     def with_lock(context:, owner: lock_default_owner, table: "locks")
       expire_time = 5
 
@@ -55,6 +69,7 @@ module Dynalock
       end
     ensure
       thread.kill unless thread.nil?
+      release_lock(context: context, owner: owner, table: table)
     end
 
    private
